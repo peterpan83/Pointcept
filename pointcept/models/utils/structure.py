@@ -8,6 +8,7 @@ except ImportError:
 from addict import Dict
 
 from pointcept.models.utils.serialization import encode, decode
+from pointcept.models.utils.serialization import encode_2d
 from pointcept.models.utils import offset2batch, batch2offset
 
 
@@ -61,12 +62,15 @@ class Point(Dict):
                 self.coord - self.coord.min(0)[0], self.grid_size, rounding_mode="trunc"
             ).int()
 
+        cood_dim = self["grid_coord"].dim()
+        encode = encode_2d if cood_dim == 2 else encode
+
         if depth is None:
             # Adaptive measure the depth of serialization cube (length = 2 ^ depth)
             depth = int(self.grid_coord.max()).bit_length()
         self["serialized_depth"] = depth
         # Maximum bit length for serialization code is 63 (int64)
-        assert depth * 3 + len(self.offset).bit_length() <= 63
+        assert depth * cood_dim + len(self.offset).bit_length() <= 16 * (cood_dim+1)-1
         # Here we follow OCNN and set the depth limitation to 16 (48bit) for the point position.
         # Although depth is limited to less than 16, we can encode a 655.36^3 (2^16 * 0.01) meter^3
         # cube with a grid size of 0.01 meter. We consider it is enough for the current stage.
@@ -178,3 +182,4 @@ class Point(Dict):
         octree.build_octree(point)
         octree.construct_all_neigh()
         self["octree"] = octree
+

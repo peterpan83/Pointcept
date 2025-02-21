@@ -43,6 +43,7 @@ class DefaultDataset(Dataset):
         ignore_index=-1,
         loop=1,
     ):
+        print(f'loop:----------------------------->{loop}')
         super(DefaultDataset, self).__init__()
         self.data_root = data_root
         self.split = split

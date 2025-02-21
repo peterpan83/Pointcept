@@ -9,6 +9,7 @@ import sys
 import tempfile
 import uuid
 import warnings
+import inspect
 from argparse import Action, ArgumentParser
 from collections import abc
 from importlib import import_module
@@ -493,7 +494,10 @@ class Config:
             blank_line_before_nested_class_or_def=True,
             split_before_expression_after_opening_paren=True,
         )
-        text, _ = FormatCode(text, style_config=yapf_style, verify=True)
+        if 'verify' in inspect.signature(FormatCode).parameters.keys():
+            text, _ = FormatCode(text, style_config=yapf_style, verify=True)
+        else:
+            text, _ = FormatCode(text, style_config=yapf_style)
 
         return text
 

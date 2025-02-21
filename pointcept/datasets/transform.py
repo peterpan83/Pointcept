@@ -42,7 +42,10 @@ class Collect(object):
         for key in self.keys:
             data[key] = data_dict[key]
         for key, value in self.offset_keys.items():
-            data[key] = torch.tensor([data_dict[value].shape[0]])
+            if key not in data_dict:
+                data[key] = torch.tensor([data_dict[value].shape[0]])
+            else:
+                data[key] = data_dict[key]
         for name, keys in self.kwargs.items():
             name = name.replace("_keys", "")
             assert isinstance(keys, Sequence)
@@ -152,6 +155,39 @@ class CenterShift(object):
             else:
                 shift = [(x_min + x_max) / 2, (y_min + y_max) / 2, 0]
             data_dict["coord"] -= shift
+        return data_dict
+
+@TRANSFORMS.register_module()
+class CenterShift2D(object):
+    def __init__(self, apply_y=True):
+        self.apply_y = apply_y
+    def __call__(self, data_dict):
+        if "coord" in data_dict.keys():
+            x_min, y_min = data_dict["coord"].min(axis=0)
+            x_max, y_max = data_dict["coord"].max(axis=0)
+            if self.apply_y:
+                shift = [(x_min + x_max) / 2, y_min]
+            else:
+                shift = [(x_min + x_max) / 2, 0]
+            data_dict["coord"] -= shift
+        return data_dict
+
+
+@TRANSFORMS.register_module()
+class PointFilter2D(object):
+    def __init__(self, point_cloud_range=(0, -50, 1000e3, 1e10)):
+        self.point_cloud_range = point_cloud_range
+
+    def __call__(self, data_dict):
+        mask = ((data_dict["coord"][:, 0] >= self.point_cloud_range[0])
+                & (data_dict["coord"][:, 0] <= self.point_cloud_range[2])
+                & (data_dict["coord"][:, 1] >= self.point_cloud_range[1]) &
+                (data_dict["coord"][:, 1] <= self.point_cloud_range[3]))
+        for key in data_dict.keys():
+            if not isinstance(data_dict[key], np.ndarray):
+                continue
+            if data_dict[key].shape[0] == data_dict[key].shape[0]:
+                data_dict[key] = data_dict[key][mask]
         return data_dict
 
 
@@ -778,6 +814,57 @@ class ElasticDistortion(object):
                     )
         return data_dict
 
+@TRANSFORMS.register_module()
+class SegmentGrid2D(object):
+    def __init__(self, x_max_grid=2**16-1, x_overlap=200):
+        self.x_max_grid = x_max_grid
+        self.x_overlap = x_overlap
+
+    def __call__(self, data_dict):
+        grid_coord = data_dict["grid_coord"]
+        x = grid_coord[:, 0]
+        x_max, x_min = x.max(), x.min()
+        x_range = x_max - x_min
+        if x_range <= self.x_max_grid:
+            return data_dict
+
+        data_dict_new = data_dict.copy()
+        for key in data_dict_new.keys():
+            if key not in ['name']:
+                data_dict_new[key] = []
+
+        data_dict_new['offset'] = [0]
+        seg_len = self.x_max_grid-self.x_overlap
+        segs = np.arange(x_min, x_max, seg_len)
+        for seg in segs:
+            left = seg
+            right = min(seg+self.x_max_grid, x_max)
+
+            if (right - left) < seg_len:
+                left = right - seg_len
+            index = np.argwhere((x>=left) & (x<=right)).flatten()
+            count = len(index)
+
+            new_grid = grid_coord[index,:]
+            new_grid[:, 0] = new_grid[:, 0] - new_grid[:, 0].min()
+
+            for key in data_dict_new.keys():
+                if key == 'name':
+                    continue
+                if key == 'grid_coord':
+                    data_dict_new[key].extend(new_grid)
+                elif key == 'offset':
+                    data_dict_new[key].extend([data_dict_new['offset'][-1]+count])
+                else:
+                    data_dict_new[key].extend(data_dict[key][index])
+
+
+        for key in data_dict_new.keys():
+            if key not in ['name']:
+                data_dict_new[key] = np.asarray(data_dict_new[key])
+        data_dict_new['offset'] = data_dict_new['offset'][1:]
+        return data_dict_new
+
 
 @TRANSFORMS.register_module()
 class GridSample(object):
@@ -792,6 +879,8 @@ class GridSample(object):
         return_min_coord=False,
         return_displacement=False,
         project_displacement=False,
+        return_count = False,  ## return the count from np.unique, added by Yanqun Pan for ICESAT-2
+        keep_absolute_axis=[], ## keep the absolute posistion for the index of axis stored in the list, default is []
     ):
         self.grid_size = grid_size
         self.hash = self.fnv_hash_vec if hash_type == "fnv" else self.ravel_hash_vec
@@ -802,13 +891,16 @@ class GridSample(object):
         self.return_grid_coord = return_grid_coord
         self.return_min_coord = return_min_coord
         self.return_displacement = return_displacement
+        self.return_count = return_count
         self.project_displacement = project_displacement
+        self.keep_absolute_axis = keep_absolute_axis
 
     def __call__(self, data_dict):
         assert "coord" in data_dict.keys()
         scaled_coord = data_dict["coord"] / np.array(self.grid_size)
         grid_coord = np.floor(scaled_coord).astype(int)
         min_coord = grid_coord.min(0)
+        min_coord[self.keep_absolute_axis] = 0
         grid_coord -= min_coord
         scaled_coord -= min_coord
         min_coord = min_coord * np.array(self.grid_size)
@@ -827,16 +919,23 @@ class GridSample(object):
                 idx_unique = np.unique(
                     np.append(idx_unique, data_dict["sampled_index"])
                 )
+
+
                 mask = np.zeros_like(data_dict["segment"]).astype(bool)
                 mask[data_dict["sampled_index"]] = True
                 data_dict["sampled_index"] = np.where(mask[idx_unique])[0]
+
+                if self.return_count:
+                    count = np.asarray([count[np.argwhere(_ == k)[0][0]] for k in key[idx_unique]], dtype=np.float32).reshape(-1,1)
+                    data_dict["count"] = count
+
             if self.return_inverse:
                 data_dict["inverse"] = np.zeros_like(inverse)
                 data_dict["inverse"][idx_sort] = inverse
             if self.return_grid_coord:
                 data_dict["grid_coord"] = grid_coord[idx_unique]
             if self.return_min_coord:
-                data_dict["min_coord"] = min_coord.reshape([1, 3])
+                data_dict["min_coord"] = min_coord.reshape([1, min_coord.shape[1]])
             if self.return_displacement:
                 displacement = (
                     scaled_coord - grid_coord - 0.5
@@ -846,6 +945,9 @@ class GridSample(object):
                         displacement * data_dict["normal"], axis=-1, keepdims=True
                     )
                 data_dict["displacement"] = displacement[idx_unique]
+            if self.return_count and 'count' not in data_dict:
+                data_dict["count"] = count.astype(np.float32).reshape(-1,1)
+
             for key in self.keys:
                 data_dict[key] = data_dict[key][idx_unique]
             return data_dict

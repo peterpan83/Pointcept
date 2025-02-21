@@ -59,6 +59,7 @@ class DefaultSegmentorV2(nn.Module):
             feat = point.feat
         else:
             feat = point
+
         seg_logits = self.seg_head(feat)
         # train
         if self.training:

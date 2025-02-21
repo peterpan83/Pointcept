@@ -2,6 +2,9 @@ from .defaults import DefaultDataset, ConcatDataset
 from .builder import build_dataset
 from .utils import point_collate_fn, collate_fn
 
+# 2d lidar
+from .icesat2 import Icesat2Dataset
+
 # indoor scene
 from .s3dis import S3DISDataset
 from .scannet import ScanNetDataset, ScanNet200Dataset
@@ -16,8 +19,8 @@ from .nuscenes import NuScenesDataset
 from .waymo import WaymoDataset
 
 # object
-from .modelnet import ModelNetDataset
-from .shapenet_part import ShapeNetPartDataset
+# from .modelnet import ModelNetDataset
+# from .shapenet_part import ShapeNetPartDataset
 
 # dataloader
 from .dataloader import MultiDatasetDataloader
