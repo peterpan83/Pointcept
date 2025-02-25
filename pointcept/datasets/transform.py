@@ -186,7 +186,7 @@ class PointFilter2D(object):
         for key in data_dict.keys():
             if not isinstance(data_dict[key], np.ndarray):
                 continue
-            if data_dict[key].shape[0] == data_dict[key].shape[0]:
+            if data_dict[key].shape[0] == mask.shape[0]:
                 data_dict[key] = data_dict[key][mask]
         return data_dict
 

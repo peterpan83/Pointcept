@@ -17,7 +17,10 @@ class Icesat2Dataset(DefaultDataset):
     VALID_ASSETS = [
         "coord",
         "height",
-        "segment"
+        "segment",
+        "feat",
+        "grid_coord",
+        "offset"
     ]
 
     def __init__(
@@ -28,7 +31,6 @@ class Icesat2Dataset(DefaultDataset):
     ):
         self.lr = np.loadtxt(lr_file, dtype=str) if lr_file is not None else None
         self.la = torch.load(la_file) if la_file is not None else None
-        print(kwargs)
         super().__init__(**kwargs)
 
     def get_data_list(self):
@@ -56,8 +58,19 @@ class Icesat2Dataset(DefaultDataset):
                 continue
             data_dict[asset[:-4]] = np.load(os.path.join(data_path, asset))
         data_dict["name"] = name
+
         data_dict["coord"] = data_dict["coord"].astype(np.float32)
-        data_dict["height"] = data_dict["height"].astype(np.float32)
+        if "height" in data_dict.keys():
+            data_dict["height"] = data_dict["height"].astype(np.float32)
+
+        if "offset" in data_dict.keys():
+            data_dict["offset"] = data_dict["offset"].astype(np.int64)
+
+        if "grid_coord" in data_dict.keys():
+            data_dict["grid_coord"] = data_dict["grid_coord"].astype(np.int64)
+
+        if "feat" in data_dict.keys():
+            data_dict["feat"] = data_dict["feat"].astype(np.float32)
 
         if "segment" in data_dict.keys():
             data_dict["segment"] = (

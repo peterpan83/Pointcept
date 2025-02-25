@@ -223,11 +223,11 @@ class Trainer(TrainerBase):
         n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
         # logger.info(f"Model: \n{self.model}")
         self.logger.info(f"Num params: {n_parameters}")
-        model = create_ddp_model(
-            model.cuda(),
-            broadcast_buffers=False,
-            find_unused_parameters=self.cfg.find_unused_parameters,
-        )
+        # model = create_ddp_model(
+        #     model.cuda(),
+        #     broadcast_buffers=False,
+        #     find_unused_parameters=self.cfg.find_unused_parameters,
+        # )
         return model
 
     def build_writer(self):

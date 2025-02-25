@@ -1,4 +1,6 @@
 import numpy as np
+import torch
+import os
 from tqdm import tqdm
 
 
@@ -48,9 +50,54 @@ def ohlwiler(data_dir, target_dir, twoD = True, split_ratio = (0.7, 0.2, 0.1)):
         write_npy(row['fname'], 'test')
 
 
+
+def seperate_segment(conf, save_to):
+    ## grid and segment
+    # conf = '/mnt/c/Users/pany0/WorkSpace/open_source/PointceptLocal/Pointcept/configs/icesat2depth/semseg-pt-v3m1-0-base.py'
+
+    from pointcept.datasets import build_dataset, point_collate_fn, collate_fn
+
+    from pointcept.engines.defaults import (
+        default_argument_parser,
+        default_config_parser,
+        default_setup,
+    )
+
+    cfg = default_config_parser(conf, options={})
+
+    for target in ['train', 'val', 'test']:
+        dataset = build_dataset(cfg.data[target])
+        num_dataset = len(dataset)
+
+        for i, data in enumerate(tqdm(dataset, total=num_dataset, desc=target)):
+            if i == num_dataset:
+                break
+            write_npy(data, save_to, target=target)
+
+
+def write_npy(data,save_to, target = 'train'):
+    offsets = np.insert(data['offset'].numpy(), 0,0)
+    path = os.path.join(save_to, target, data['name'])
+
+    for i, (left, right) in enumerate(zip(offsets[0:-1], offsets[1:])):
+        for key in data.keys():
+            if isinstance(data[key], str) or key=='offset':
+                continue
+
+            dir_name = f'{path}_{i}'
+            os.makedirs(dir_name, exist_ok=True)
+
+            np.save(os.path.join(dir_name, f'{key}.npy'), data[key][left:right].numpy())
+
+    return 0
+
+
+
 if __name__ == '__main__':
-    ohlwiler(data_dir='/mnt/e/Projects/ICESAT-2_Bathymetry/Ohlwiler_Data/Updated_CSVs/Updated_CSVs/',
-             target_dir='/mnt/e/Projects/ICESAT-2_Bathymetry/OhlwilerDataset2D')
+    # ohlwiler(data_dir='/mnt/e/Projects/ICESAT-2_Bathymetry/Ohlwiler_Data/Updated_CSVs/Updated_CSVs/',
+    #          target_dir='/mnt/e/Projects/ICESAT-2_Bathymetry/OhlwilerDataset2D')
+    conf = '/mnt/c/Users/pany0/WorkSpace/open_source/PointceptLocal/Pointcept/configs/icesat2depth/semseg-pt-v3m1-0-base_preprocess.py'
+    seperate_segment(conf, save_to='/mnt/e/Projects/ICESAT-2_Bathymetry/OhlwilerDataset2D_Seg')
 
 
 

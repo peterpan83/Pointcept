@@ -1,9 +1,9 @@
 _base_ = ["../_base_/default_runtime.py"]
 
 # misc custom setting
-batch_size = 12  # bs: total bs in all gpus
-num_worker = 24
-mix_prob = 0.8
+batch_size = 2  # bs: total bs in all gpus
+num_worker = 1
+mix_prob = 0 ## no mix
 empty_cache = False
 enable_amp = True
 
@@ -52,7 +52,7 @@ model = dict(
 )
 
 # scheduler settings
-epoch = 500
+epoch = 100
 optimizer = dict(type="AdamW", lr=0.006, weight_decay=0.05)
 scheduler = dict(
     type="OneCycleLR",
@@ -66,7 +66,7 @@ param_dicts = [dict(keyword="block", lr=0.0006)]
 
 # dataset settings
 dataset_type = "Icesat2Dataset"
-data_root = "/mnt/e/Projects/ICESAT-2_Bathymetry/OhlwilerDataset2D"
+data_root = "/mnt/e/Projects/ICESAT-2_Bathymetry/OhlwilerDataset2D_Seg"
 
 data = dict(
     num_classes=3,
@@ -92,26 +92,10 @@ data = dict(
                 type = 'PointFilter2D',
                 point_cloud_range=(0, -50, 1e10, 10),
             ),
-            dict(
-                type="GridSample",
-                grid_size=(0.2, 0.05), ### 0.2m for along distance and 0.05m for height
-                keys=('coord','height','segment'),
-                hash_type="fnv",
-                mode="train",
-                return_grid_coord=True,
-                return_count = True,
-                keep_absolute_axis = [1], ## keep absolute position for y (height)
-            ),
-            dict(
-                type = 'SegmentGrid2D',
-                x_max_grid=2**16-1, ## the maximum serilization depth is 16
-                x_overlap=2000,
-            ),
             dict(type="ToTensor"),
             dict(
                 type="Collect",
-                keys=("coord", "grid_coord", "segment","name"),
-                feat_keys=("height", "count"),
+                keys=("coord", "grid_coord", "segment", "name", "feat"),
             ),
         ],
         test_mode=False,
@@ -132,25 +116,10 @@ data = dict(
                 type = 'PointFilter2D',
                 point_cloud_range=(0, -50, 1e10, 10),
             ),
-            dict(
-                type="GridSample",
-                grid_size=(0.2, 0.05), ### 0.2m for along distance and 0.05m for height
-                keys=('coord','height','segment'),
-                hash_type="fnv",
-                mode="train",
-                return_grid_coord=True,
-                return_count = True,
-                keep_absolute_axis = [1], ## keep absolute position for y (height)
-            ),
-            dict(
-                type = 'SegmentGrid2D',
-                x_max_grid=2**16-1, ## the maximum serilization depth is 16
-                x_overlap=2000,
-            ),
             dict(type="ToTensor"),
             dict(
                 type="Collect",
-                keys=("coord", "grid_coord", "segment","name"),
+                keys=("coord", "grid_coord", "segment", "name"),
                 feat_keys=("height", "count"),
             ),
         ],
