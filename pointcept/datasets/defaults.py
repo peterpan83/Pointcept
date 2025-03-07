@@ -42,6 +42,7 @@ class DefaultDataset(Dataset):
         cache=False,
         ignore_index=-1,
         loop=1,
+        data_type = None,
     ):
         # print(f'loop:----------------------------->{loop}')
         super(DefaultDataset, self).__init__()
@@ -56,13 +57,20 @@ class DefaultDataset(Dataset):
         self.test_mode = test_mode
         self.test_cfg = test_cfg if test_mode else None
 
+        self.test_voxelize = None
+        self.test_crop = None
+        self.post_transform = None
+        self.aug_transform = None
+
         if test_mode:
-            self.test_voxelize = TRANSFORMS.build(self.test_cfg.voxelize)
-            self.test_crop = (
-                TRANSFORMS.build(self.test_cfg.crop) if self.test_cfg.crop else None
-            )
-            self.post_transform = Compose(self.test_cfg.post_transform)
-            self.aug_transform = [Compose(aug) for aug in self.test_cfg.aug_transform]
+            if data_type is None:
+                self.test_voxelize = TRANSFORMS.build(self.test_cfg.voxelize)
+
+                self.test_crop = (
+                    TRANSFORMS.build(self.test_cfg.crop) if self.test_cfg.crop else None
+                )
+                self.post_transform = Compose(self.test_cfg.post_transform)
+                self.aug_transform = [Compose(aug) for aug in self.test_cfg.aug_transform]
 
         self.data_list = self.get_data_list()
         logger = get_root_logger()
@@ -144,8 +152,11 @@ class DefaultDataset(Dataset):
             result_dict["inverse"] = data_dict.pop("inverse")
 
         data_dict_list = []
-        for aug in self.aug_transform:
-            data_dict_list.append(aug(deepcopy(data_dict)))
+        if self.aug_transform is not None:
+            for aug in self.aug_transform:
+                data_dict_list.append(aug(deepcopy(data_dict)))
+        else:
+            data_dict_list.append(deepcopy(data_dict))
 
         fragment_list = []
         for data in data_dict_list:
@@ -160,9 +171,10 @@ class DefaultDataset(Dataset):
                 else:
                     data_part = [data_part]
                 fragment_list += data_part
+        if self.post_transform is not None:
+            for i in range(len(fragment_list)):
+                fragment_list[i] = self.post_transform(fragment_list[i])
 
-        for i in range(len(fragment_list)):
-            fragment_list[i] = self.post_transform(fragment_list[i])
         result_dict["fragment_list"] = fragment_list
         return result_dict
 

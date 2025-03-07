@@ -31,6 +31,7 @@ class Icesat2Dataset(DefaultDataset):
     ):
         self.lr = np.loadtxt(lr_file, dtype=str) if lr_file is not None else None
         self.la = torch.load(la_file) if la_file is not None else None
+        kwargs.update({'data_type': 'icesat2'})
         super().__init__(**kwargs)
 
     def get_data_list(self):
@@ -41,6 +42,7 @@ class Icesat2Dataset(DefaultDataset):
                 os.path.join(self.data_root, "train", name) for name in self.lr
             ]
         return sorted(data_list)
+
 
     def get_data(self, idx):
         data_path = self.data_list[idx % len(self.data_list)]
