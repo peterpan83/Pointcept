@@ -344,6 +344,16 @@ class RandomScale(object):
             data_dict["coord"] *= scale
         return data_dict
 
+@TRANSFORMS.register_module()
+class RandomFlipIcesat(object):
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, data_dict):
+        if np.random.rand() < self.p:
+            if "grid_coord" in data_dict.keys():
+                data_dict["grid_coord"] = np.flip(data_dict["grid_coord"][:, 0], axis=1)
+
 
 @TRANSFORMS.register_module()
 class RandomFlip(object):

@@ -59,14 +59,17 @@ class TesterBase:
         model = build_model(self.cfg.model)
         n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
         self.logger.info(f"Num params: {n_parameters}")
-        model = create_ddp_model(
-            model.cuda(),
-            broadcast_buffers=False,
-            find_unused_parameters=self.cfg.find_unused_parameters,
-        )
+        # model = create_ddp_model(
+        #     model.cuda(),
+        #     broadcast_buffers=False,
+        #     find_unused_parameters=self.cfg.find_unused_parameters,
+        # )
         if os.path.isfile(self.cfg.weight):
             self.logger.info(f"Loading weight at: {self.cfg.weight}")
-            checkpoint = torch.load(self.cfg.weight)
+            if not torch.cuda.is_available():
+                checkpoint = torch.load(self.cfg.weight, map_location=torch.device("cpu"))
+            else:
+                checkpoint = torch.load(self.cfg.weight)
             weight = OrderedDict()
             for key, value in checkpoint["state_dict"].items():
                 if key.startswith("module."):
@@ -75,8 +78,8 @@ class TesterBase:
                 else:
                     if comm.get_world_size() > 1:
                         key = "module." + key  # xxx.xxx -> module.xxx.xxx
-                weight[key] = value
-            model.load_state_dict(weight, strict=True)
+
+            model.load_state_dict(weight, strict=False)
             self.logger.info(
                 "=> Loaded weight '{}' (epoch {})".format(
                     self.cfg.weight, checkpoint["epoch"]

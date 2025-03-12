@@ -34,7 +34,7 @@ model = dict(
         shuffle_orders=True,
         pre_norm=True,
         enable_rpe=False,
-        enable_flash=True,
+        enable_flash=False,
         upcast_attention=False,
         upcast_softmax=False,
         cls_mode=False,
@@ -66,7 +66,7 @@ param_dicts = [dict(keyword="block", lr=0.0006)]
 
 # dataset settings
 dataset_type = "ScanNetDataset"
-data_root = "data/scannet"
+data_root = "/mnt/d/Projects/Pointcept/scannet"
 
 data = dict(
     num_classes=20,
