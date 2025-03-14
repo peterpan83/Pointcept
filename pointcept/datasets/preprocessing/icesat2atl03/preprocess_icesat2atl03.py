@@ -97,7 +97,7 @@ if __name__ == '__main__':
     # ohlwiler(data_dir='/mnt/e/Projects/ICESAT-2_Bathymetry/Ohlwiler_Data/Updated_CSVs/Updated_CSVs/',
     #          target_dir='/mnt/e/Projects/ICESAT-2_Bathymetry/OhlwilerDataset2D')
     conf = '/mnt/c/Users/pany0/WorkSpace/open_source/PointceptLocal/Pointcept/configs/icesat2depth/semseg-pt-v3m1-0-base_preprocess.py'
-    seperate_segment(conf, save_to='/mnt/e/Projects/ICESAT-2_Bathymetry/OhlwilerDataset2D_Seg')
+    seperate_segment(conf, save_to='/mnt/e/Projects/ICESAT-2_Bathymetry/data_8192/pointcept_OhlwilerDataset2D_Seg')
 
 
 

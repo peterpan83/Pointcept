@@ -192,7 +192,7 @@ class SemSegEvaluator_ICESAT(HookBase):
             "Best {}: {:.4f}".format("mIoU", self.trainer.best_metric_value)
         )
 
-'''
+
 @HOOKS.register_module()
 class SemSegEvaluator(HookBase):
     import pointops
@@ -672,5 +672,3 @@ class InsSegEvaluator(HookBase):
         self.trainer.logger.info("<<<<<<<<<<<<<<<<< End Evaluation <<<<<<<<<<<<<<<<<")
         self.trainer.comm_info["current_metric_value"] = all_ap_50  # save for saver
         self.trainer.comm_info["current_metric_name"] = "AP50"  # save for saver
-
-'''

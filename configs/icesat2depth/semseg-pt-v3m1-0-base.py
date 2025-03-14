@@ -5,7 +5,7 @@ batch_size = 1  # bs: total bs in all gpus
 num_worker = 1
 mix_prob = 0 ## no mix
 empty_cache = False
-enable_amp = False
+enable_amp = True
 
 # model settings
 model = dict(
@@ -66,7 +66,8 @@ param_dicts = [dict(keyword="block", lr=0.0006)]
 
 # dataset settings
 dataset_type = "Icesat2Dataset"
-data_root = "/mnt/e/Projects/ICESAT-2_Bathymetry/OhlwilerDataset2D_Seg"
+# data_root = "/home/yanai/OhlwilerDataset2D_Seg"
+data_root = "/mnt/e/Projects/ICESAT-2_Bathymetry/data_8192/pointcept_OhlwilerDataset2D_Seg"
 
 data = dict(
     num_classes=3,
@@ -92,6 +93,10 @@ data = dict(
                 type = 'PointFilter2D',
                 point_cloud_range=(0, -50, 1e10, 10),
             ),
+            dict(
+              type = 'RandomFlipIcesat' ,
+              p = 0.5,
+            ),
             dict(type="ToTensor"),
             dict(
                 type="Collect",
@@ -115,6 +120,10 @@ data = dict(
             dict(
                 type = 'PointFilter2D',
                 point_cloud_range=(0, -50, 1e10, 10),
+            ),
+            dict(
+                type='RandomFlipIcesat',
+                p=0.5,
             ),
             dict(type="ToTensor"),
             dict(

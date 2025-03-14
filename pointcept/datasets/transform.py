@@ -352,7 +352,8 @@ class RandomFlipIcesat(object):
     def __call__(self, data_dict):
         if np.random.rand() < self.p:
             if "grid_coord" in data_dict.keys():
-                data_dict["grid_coord"] = np.flip(data_dict["grid_coord"][:, 0], axis=1)
+                data_dict["grid_coord"][:, 0] = np.flip(data_dict["grid_coord"][:, 0])
+        return data_dict
 
 
 @TRANSFORMS.register_module()
@@ -826,9 +827,10 @@ class ElasticDistortion(object):
 
 @TRANSFORMS.register_module()
 class SegmentGrid2D(object):
-    def __init__(self, x_max_grid=2**16-1, x_overlap=200):
+    def __init__(self, x_max_grid=2**16-1, x_overlap=200, min_num=1024):
         self.x_max_grid = x_max_grid
         self.x_overlap = x_overlap
+        self.min_num = min_num
 
     def __call__(self, data_dict):
         grid_coord = data_dict["grid_coord"]
@@ -853,7 +855,11 @@ class SegmentGrid2D(object):
             if (right - left) < seg_len:
                 left = right - seg_len
             index = np.argwhere((x>=left) & (x<=right)).flatten()
+
             count = len(index)
+
+            if count < self.min_num:
+                continue
 
             new_grid = grid_coord[index,:]
             new_grid[:, 0] = new_grid[:, 0] - new_grid[:, 0].min()

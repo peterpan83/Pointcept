@@ -4,7 +4,8 @@ _base_ = ["../_base_/default_runtime.py"]
 
 # dataset settings
 dataset_type = "Icesat2Dataset"
-data_root = "/mnt/e/Projects/ICESAT-2_Bathymetry/OhlwilerDataset2D"
+# data_root = "/mnt/e/Projects/ICESAT-2_Bathymetry/OhlwilerDataset2D"
+data_root = "/mnt/e/Projects/ICESAT-2_Bathymetry/data_8192/data_8192/pointcept_format"
 
 data = dict(
     num_classes=3,
