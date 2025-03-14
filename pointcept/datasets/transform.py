@@ -352,7 +352,8 @@ class RandomFlipIcesat(object):
     def __call__(self, data_dict):
         if np.random.rand() < self.p:
             if "grid_coord" in data_dict.keys():
-                data_dict["grid_coord"][:, 0] = np.flip(data_dict["grid_coord"][:, 0])
+                x = data_dict["grid_coord"][:,0]
+                data_dict["grid_coord"][:,0] = x.min() + x.max() - x
         return data_dict
 
 
